@@ -12,6 +12,7 @@ from threestudio.models.prompt_processors.base import PromptProcessor, hash_prom
 from threestudio.utils.misc import cleanup
 from threestudio.utils.typing import *
 
+device = "cuda" if torch.cuda.is_available() else "cpu"
 
 @threestudio.register("deep-floyd-prompt-processor")
 class DeepFloydPromptProcessor(PromptProcessor):
@@ -62,10 +63,10 @@ class DeepFloydPromptProcessor(PromptProcessor):
             pretrained_model_name_or_path,
             subfolder="text_encoder",
             torch_dtype=torch.float16,  # suppress warning
-            load_in_8bit=True,
-            variant="8bit",
-            device_map="auto",
-        )
+            # load_in_8bit=True,
+            # variant="8bit",
+            # device_map="auto",
+        ).to(device)
         with torch.no_grad():
             text_inputs = tokenizer(
                 prompts,
@@ -77,6 +78,8 @@ class DeepFloydPromptProcessor(PromptProcessor):
             )
             text_input_ids = text_inputs.input_ids
             attention_mask = text_inputs.attention_mask
+            text_input_ids = text_input_ids.to(text_encoder.device)
+            attention_mask = attention_mask.to(text_encoder.device)
             text_embeddings = text_encoder(
                 text_input_ids.to(text_encoder.device),
                 attention_mask=attention_mask.to(text_encoder.device),
