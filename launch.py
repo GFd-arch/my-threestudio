@@ -260,6 +260,7 @@ def main(args, extras) -> None:
 
 
 if __name__ == "__main__":
+    print("Start")
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", required=True, help="path to config file")
     parser.add_argument(
