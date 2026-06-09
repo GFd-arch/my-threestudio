@@ -5,9 +5,17 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from igl import fast_winding_number_for_meshes, point_mesh_squared_distance, read_obj
+from igl import point_mesh_squared_distance
+
+try:
+    from igl import read_obj
+except ImportError:
+    from igl import readOBJ as read_obj
+    
 from torch.autograd import Function
 from torch.cuda.amp import custom_bwd, custom_fwd
+
+fast_winding_number_for_meshes = None
 
 import threestudio
 from threestudio.utils.typing import *
@@ -473,12 +481,21 @@ class MeshOBJ:
         return MeshOBJ(verts, self.f)
 
     def winding_number(self, query: torch.Tensor):
+        if fast_winding_number_for_meshes is None:
+            raise RuntimeError(
+                "fast_winding_number_for_meshes is not available in current libigl version"
+            )
+    
         device = query.device
         shp = query.shape
         query_np = query.detach().cpu().reshape(-1, 3).numpy()
+    
         target_alphas = fast_winding_number_for_meshes(
-            self.v.astype(np.float32), self.f, query_np
+            self.v.astype(np.float32),
+            self.f,
+            query_np,
         )
+    
         return torch.from_numpy(target_alphas).reshape(shp[:-1]).to(device)
 
     def gaussian_weighted_distance(self, query: torch.Tensor, sigma):
